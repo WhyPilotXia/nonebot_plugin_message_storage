@@ -32,7 +32,7 @@
 在 nonebot2 项目的根目录下打开命令行，输入以下指令：
 
 ```bash
-nb plugin install nonebot_plugin_message_storage
+nb plugin install nonebot-plugin-message-storage
 ```
 
 ### 使用包管理器安装
@@ -42,13 +42,13 @@ nb plugin install nonebot_plugin_message_storage
 #### pdm
 
 ```bash
-pdm add nonebot_plugin_message_storage
+pdm add nonebot-plugin-message-storage
 ```
 
 #### poetry
 
 ```bash
-poetry add nonebot_plugin_message_storage
+poetry add nonebot-plugin-message-storage
 ```
 
 然后打开 nonebot2 项目根目录下的 `pyproject.toml` 文件，在 `[tool.nonebot]` 部分追加写入：
