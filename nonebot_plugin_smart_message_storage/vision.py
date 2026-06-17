@@ -61,7 +61,7 @@ async def summarize_images(images: list[dict[str, Any]], timeline: list[dict[str
     try:
         data = response.json()
     except Exception as e:
-        raise VisionError(f"AI response is not JSON: {e}") from e
+        raise VisionError(f"AI response is not JSON: {response}（{e}）") from e
 
     if response.status_code >= 400:
         message = data.get("error", {}).get("message") if isinstance(data, dict) else ""

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from nonebot.log import logger
+from nonebot import get_driver, require
+require("nonebot_plugin_localstore")
 from nonebot_plugin_localstore import get_data_dir
 
 from .config import config
