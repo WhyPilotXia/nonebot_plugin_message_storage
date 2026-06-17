@@ -14,7 +14,7 @@ from ..constants import PENDING_FILE
 from ..db import SessionLocal
 from ..models import GroupMessage
 from ..vision import summarize_images
-from .context import get_messages_by_ids, select_context_messages
+from .context import after_context_chars, context_text, get_messages_by_ids, select_context_messages
 from .message_utils import IMAGE_CQ_RE, image_summary_segment
 
 _lock = asyncio.Lock()
@@ -42,7 +42,6 @@ def _save_pending_unlocked(tasks: list[dict[str, Any]]) -> None:
 async def add_pending_tasks(tasks: list[dict[str, Any]]) -> None:
     if not tasks:
         return
-    should_flush = False
     async with _lock:
         pending = _load_pending_unlocked()
         known = {task.get("task_id") for task in pending}
@@ -52,10 +51,26 @@ async def add_pending_tasks(tasks: list[dict[str, Any]]) -> None:
                 continue
             _cleanup_tasks([task])
         _save_pending_unlocked(pending)
-        should_flush = len(pending) >= config.image_batch_size
 
-    if should_flush:
-        asyncio.create_task(flush_pending(reason="batch"))
+    await maybe_flush_batch_pending()
+
+
+async def maybe_flush_batch_pending() -> int:
+    if not config.ai_api_key:
+        return 0
+    async with _lock:
+        pending = _load_pending_unlocked()
+        ready = [
+            task for task in pending
+            if task.get("task_id") not in _in_progress and _has_enough_after_context(task)
+        ]
+    if len(ready) < config.image_batch_size:
+        return 0
+    return await flush_pending(
+        reason="batch",
+        all_conversations=True,
+        task_ids={str(task["task_id"]) for task in ready},
+    )
 
 
 async def flush_pending(
@@ -64,6 +79,7 @@ async def flush_pending(
     group_id: Optional[int] = None,
     user_id: Optional[int] = None,
     all_conversations: bool = False,
+    task_ids: Optional[set[str]] = None,
 ) -> int:
     if not config.ai_api_key:
         logger.info("[AI识图] 未配置 ai_api_key，跳过识图。")
@@ -75,7 +91,9 @@ async def flush_pending(
             task for task in pending
             if all_conversations or _task_in_scope(task, group_id=group_id, user_id=user_id)
         ]
-        selected = [task for task in selected if task.get("task_id") not in _in_progress]
+        if task_ids is not None:
+            selected = [task for task in selected if str(task.get("task_id")) in task_ids]
+        selected = [task for task in selected if str(task.get("task_id")) not in _in_progress]
         if not selected:
             return 0
         _in_progress.update(str(task.get("task_id")) for task in selected)
@@ -103,6 +121,13 @@ def _task_in_scope(task: dict[str, Any], *, group_id: Optional[int], user_id: Op
     if group_id == -1:
         return int(task.get("group_id", 0)) == -1 and int(task.get("user_id", 0)) == int(user_id or 0)
     return int(task.get("group_id", 0)) == int(group_id)
+
+
+def _has_enough_after_context(task: dict[str, Any]) -> bool:
+    return (
+        after_context_chars(int(task["group_id"]), int(task["user_id"]), int(task["db_id"]))
+        >= config.image_context_after_chars
+    )
 
 
 async def flush_stale_pending() -> int:
@@ -191,8 +216,8 @@ def build_timeline(tasks: list[dict[str, Any]], hash_to_index: dict[str, int]) -
         image_tasks = sorted(tasks_by_db_id.get(db_id, []), key=lambda item: int(item["image_index"]))
         if image_tasks:
             timeline.extend(_image_message_timeline_items(msg, image_tasks, hash_to_index))
-        elif msg.get("text"):
-            timeline.append({"user": msg["user"], "type": "text", "text": msg["text"]})
+        elif context_text(msg.get("text") or ""):
+            timeline.append({"user": msg["user"], "type": "text", "text": context_text(msg["text"])})
 
     return timeline
 
@@ -212,7 +237,7 @@ def _image_message_timeline_items(msg: dict[str, Any], image_tasks: list[dict[st
             digest = task.get("hash") or task.get("task_id")
             items.append({"user": user, "type": "image", "index": hash_to_index[digest]})
         else:
-            _append_text_item(items, user, match.group(0))
+            pass
         cursor = match.end()
 
     _append_text_item(items, user, raw[cursor:])

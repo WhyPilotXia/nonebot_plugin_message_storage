@@ -13,6 +13,8 @@ class MessageStorageConfig(BaseModel):
     ai_model: str = "gemini-3.5-flash"
     image_batch_size: int = 5
     image_flush_seconds: int = 30 * 60
+    image_context_before_chars: int = 100
+    image_context_after_chars: int = 100
     db_url: str = "sqlite:///qq_messages.db"
 
 
@@ -24,3 +26,5 @@ config.ai_model = os.getenv("AI_MODEL", config.ai_model)
 config.db_url = os.getenv("DB_URL", config.db_url)
 config.image_batch_size = int(os.getenv("IMAGE_BATCH_SIZE", config.image_batch_size))
 config.image_flush_seconds = int(os.getenv("IMAGE_FLUSH_SECONDS", config.image_flush_seconds))
+config.image_context_before_chars = int(os.getenv("IMAGE_CONTEXT_BEFORE_CHARS", config.image_context_before_chars))
+config.image_context_after_chars = int(os.getenv("IMAGE_CONTEXT_AFTER_CHARS", config.image_context_after_chars))

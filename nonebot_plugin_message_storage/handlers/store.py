@@ -13,6 +13,7 @@ from ..models import GroupMessage
 from ..services.contacts import get_display_name
 from ..services.image_tasks import collect_pending_images
 from ..services.message_utils import conversation_group_id, raw_message_text
+from ..services.pending import maybe_flush_batch_pending
 
 message_logger = on_message(priority=100)
 
@@ -58,3 +59,4 @@ async def log_message(bot: Bot, event: MessageEvent):
 
     if msg and config.ai_api_key:
         await collect_pending_images(bot, event.message_id, event.message, msg)
+        await maybe_flush_batch_pending()
