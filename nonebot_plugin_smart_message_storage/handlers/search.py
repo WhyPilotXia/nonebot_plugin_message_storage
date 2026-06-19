@@ -5,6 +5,7 @@ import base64
 import io
 import re
 import textwrap
+from pathlib import Path
 
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message, MessageEvent, MessageSegment, PrivateMessageEvent
@@ -20,9 +21,11 @@ from ..services.message_utils import conversation_group_id
 
 search_message = on_command("查消息", priority=5)
 
+FONT_PATH = Path(__file__).resolve().parent.parent / "assets" / "simkai.ttf"
+
 
 def text_to_base64_image(lines: list[str]) -> str:
-    font = ImageFont.truetype("simkai.ttf", size=20)
+    font = ImageFont.truetype(str(FONT_PATH), size=20)
     wrapped_lines = []
     for line in lines:
         wrapped = textwrap.wrap(line, width=80)

@@ -196,6 +196,8 @@ nonebot_plugin_smart_message_storage/
 ├── models.py            # 定义 GroupMessage 数据模型，对应 group_messages 表
 ├── prompt.py            # 构造 AI 识图提示词，包含聊天时间线、图片任务和返回格式要求
 ├── vision.py            # 调用 OpenAI 兼容视觉接口，上传 base64 图片并解析 AI JSON 返回
+├── assets/
+│   └── simkai.ttf       # 跨平台渲染中文搜索结果所使用的内置楷体字体
 ├── handlers/
 │   ├── __init__.py      # 汇总导入所有 handler，完成指令和事件监听注册
 │   ├── notices.py       # 监听戳一戳、加群、退群、撤回等 notice 事件并写入消息表
